@@ -1,0 +1,371 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Users, Calendar, Mail, Search, UserCheck, Trash2, AlertTriangle } from 'lucide-react';
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  created_at?: string;
+}
+
+export default function AdminUsersPage() {
+  const router = useRouter();
+  const [users, setUsers] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const statsRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Check if admin is logged in
+    const userRole = localStorage.getItem('userRole');
+    const isAdmin = userRole === 'admin' || localStorage.getItem('isAdminLoggedIn') === 'true';
+    
+    if (!isAdmin) {
+      router.push('/login');
+      return;
+    }
+
+    loadUsers();
+
+    // Scroll animations
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-in');
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    );
+
+    const stats = statsRef.current?.querySelectorAll('.scroll-animate');
+    const search = searchRef.current?.querySelectorAll('.scroll-animate');
+    const table = tableRef.current?.querySelectorAll('.scroll-animate');
+
+    stats?.forEach((el) => observer.observe(el));
+    search?.forEach((el) => observer.observe(el));
+    table?.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [router]);
+
+  const loadUsers = async () => {
+    try {
+      console.log('[ADMIN USERS] Loading users...');
+      const response = await fetch('/api/users');
+      const data = await response.json();
+
+      console.log('[ADMIN USERS] Response:', data);
+
+      if (data.success) {
+        setUsers(data.users || []);
+      } else {
+        console.error('[ADMIN USERS] Failed:', data.error);
+      }
+    } catch (error) {
+      console.error('[ADMIN USERS] Error loading users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (user: User) => {
+    setDeletingUser(user);
+    setDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingUser) return;
+
+    try {
+      console.log('[ADMIN USERS] Deleting user:', deletingUser.id);
+      
+      const response = await fetch(`/api/users?id=${deletingUser.id}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('[ADMIN USERS] User deleted successfully');
+        await loadUsers(); // Reload users
+        setDeleteModal(false);
+        setDeletingUser(null);
+      } else {
+        alert('Gagal menghapus user: ' + data.error);
+      }
+    } catch (error) {
+      console.error('[ADMIN USERS] Delete error:', error);
+      alert('Terjadi kesalahan saat menghapus user');
+    }
+  };
+
+  const filteredUsers = users.filter(user =>
+    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (user.phone && user.phone.includes(searchQuery))
+  );
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50/30 to-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-lg border-b-4 border-orange-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/admin/dashboard')}
+                className="p-3 hover:bg-orange-100 rounded-xl transition transform hover:scale-110 shadow-md hover:shadow-lg"
+              >
+                <ArrowLeft className="w-6 h-6 text-orange-600" />
+              </button>
+              <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 p-3 rounded-2xl shadow-lg">
+                <Users className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-500 to-orange-600 bg-clip-text text-transparent">
+                  Manajemen User
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">Kelola dan pantau akun pengguna terdaftar</p>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-orange-600 text-white px-8 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition transform hover:-translate-y-1">
+              <div className="flex items-center gap-3">
+                <Users className="w-6 h-6" />
+                <div>
+                  <p className="text-xs font-semibold opacity-90 uppercase tracking-wide">Total User</p>
+                  <p className="text-3xl font-bold">{users.length}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Stats Cards */}
+        <div ref={statsRef} className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          <div className="scroll-animate bg-white rounded-2xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 p-8 border-t-4 border-orange-500" style={{ transitionDelay: '0.1s' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-4 rounded-xl">
+                <Users className="w-10 h-10 text-orange-600" />
+              </div>
+              <div className="text-right">
+                <p className="text-gray-500 text-sm font-medium mb-1">Total Terdaftar</p>
+                <p className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">{users.length}</p>
+              </div>
+            </div>
+            <div className="h-2 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full"></div>
+          </div>
+
+          <div className="scroll-animate bg-white rounded-2xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 p-8 border-t-4 border-orange-400" style={{ transitionDelay: '0.2s' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-4 rounded-xl">
+                <Mail className="w-10 h-10 text-orange-500" />
+              </div>
+              <div className="text-right">
+                <p className="text-gray-500 text-sm font-medium mb-1">Total Email</p>
+                <p className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
+                  {users.filter(u => u.email).length}
+                </p>
+              </div>
+            </div>
+            <div className="h-2 bg-gradient-to-r from-orange-400 to-orange-300 rounded-full"></div>
+          </div>
+
+          <div className="scroll-animate bg-white rounded-2xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 p-8 border-t-4 border-orange-300" style={{ transitionDelay: '0.3s' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-4 rounded-xl">
+                <Calendar className="w-10 h-10 text-orange-400" />
+              </div>
+              <div className="text-right">
+                <p className="text-gray-500 text-sm font-medium mb-1">User Baru (7 Hari)</p>
+                <p className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
+                  {users.filter(u => {
+                    if (!u.created_at) return false;
+                    const created = new Date(u.created_at);
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    return created >= weekAgo;
+                  }).length}
+                </p>
+              </div>
+            </div>
+            <div className="h-2 bg-gradient-to-r from-orange-300 to-orange-200 rounded-full"></div>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div ref={searchRef} className="scroll-animate bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100" style={{ transitionDelay: '0.4s' }}>
+          <div className="relative">
+            <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-orange-400 w-6 h-6" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari berdasarkan nama, email, atau nomor HP..."
+              className="w-full pl-14 pr-6 py-4 border-2 border-orange-200 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 outline-none transition text-gray-900 font-medium placeholder:text-gray-400"
+            />
+          </div>
+        </div>
+
+        {/* Users Table */}
+        <div ref={tableRef} className="scroll-animate bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100" style={{ transitionDelay: '0.5s' }}>
+          {filteredUsers.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-6 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <Users className="w-12 h-12 text-orange-600" />
+              </div>
+              <p className="text-gray-600 text-xl font-semibold mb-2">
+                {searchQuery ? 'Tidak ada user yang cocok' : 'Belum ada user terdaftar'}
+              </p>
+              <p className="text-gray-400">
+                {searchQuery ? 'Coba kata kunci lain' : 'User akan muncul di sini setelah registrasi'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-orange-500 to-orange-600">
+                  <tr>
+                    <th className="px-8 py-5 text-left text-sm font-bold text-white uppercase tracking-wide">No</th>
+                    <th className="px-8 py-5 text-left text-sm font-bold text-white uppercase tracking-wide">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="w-5 h-5" />
+                        Nama
+                      </div>
+                    </th>
+                    <th className="px-8 py-5 text-left text-sm font-bold text-white uppercase tracking-wide">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-5 h-5" />
+                        Email
+                      </div>
+                    </th>
+                    <th className="px-8 py-5 text-left text-sm font-bold text-white uppercase tracking-wide">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5" />
+                        Terdaftar
+                      </div>
+                    </th>
+                    <th className="px-8 py-5 text-center text-sm font-bold text-white uppercase tracking-wide">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredUsers.map((user, index) => (
+                    <tr key={user.id} className={`hover:bg-orange-50/50 transition ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                      <td className="px-8 py-6 text-sm font-bold text-gray-600">
+                        {index + 1}
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ring-2 ring-orange-200">
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-900 text-base">{user.name}</p>
+                            <p className="text-xs text-orange-600 capitalize font-medium bg-orange-100 px-3 py-1 rounded-full inline-block mt-1">
+                              User
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 text-sm text-gray-700 font-medium">
+                        {user.email}
+                      </td>
+                      <td className="px-8 py-6 text-sm text-gray-600 font-medium">
+                        {formatDate(user.created_at)}
+                      </td>
+                      <td className="px-8 py-6 text-center">
+                        <button
+                          onClick={() => handleDeleteClick(user)}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition transform hover:scale-105 shadow-md"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Hapus
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal && deletingUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-slideUp">
+            <div className="flex items-center justify-center mb-6">
+              <div className="bg-red-100 p-4 rounded-full">
+                <AlertTriangle className="w-12 h-12 text-red-600" />
+              </div>
+            </div>
+            
+            <h2 className="text-2xl font-bold text-gray-800 text-center mb-2">
+              Hapus User?
+            </h2>
+            <p className="text-gray-600 text-center mb-6">
+              Apakah Anda yakin ingin menghapus user <span className="font-bold text-orange-600">{deletingUser.name}</span>? 
+              Tindakan ini tidak dapat dibatalkan.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setDeleteModal(false);
+                  setDeletingUser(null);
+                }}
+                className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="flex-1 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition"
+              >
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

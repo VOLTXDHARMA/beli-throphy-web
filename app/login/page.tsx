@@ -1,0 +1,356 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Trophy, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [rememberMe, setRememberMe] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Auto-fill if saved
+    const savedEmail = localStorage.getItem('savedEmail');
+    const savedPassword = localStorage.getItem('savedPassword');
+    const savedName = localStorage.getItem('savedName');
+    
+    if (savedEmail) {
+      setFormData(prev => ({
+        ...prev,
+        email: savedEmail,
+        password: savedPassword || '',
+        name: savedName || ''
+      }));
+      setRememberMe(true);
+    }
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      console.log('[LOGIN] Sending request...');
+      
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      });
+
+      const data = await response.json();
+      console.log('[LOGIN] Response:', data);
+
+      if (!response.ok || !data.success) {
+        setError(data.error || 'Login gagal');
+        setLoading(false);
+        return;
+      }
+
+      // Save session
+      localStorage.setItem('userId', String(data.user.id));
+      localStorage.setItem('userToken', data.token);
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      
+      // Save admin status
+      if (data.isAdmin) {
+        localStorage.setItem('isAdminLoggedIn', 'true');
+        localStorage.setItem('userRole', 'admin');
+      } else {
+        localStorage.setItem('userRole', 'user');
+        localStorage.removeItem('isAdminLoggedIn');
+      }
+      
+      // Save credentials if remember me
+      if (rememberMe) {
+        localStorage.setItem('savedEmail', formData.email);
+        localStorage.setItem('savedPassword', formData.password);
+      } else {
+        localStorage.removeItem('savedEmail');
+        localStorage.removeItem('savedPassword');
+      }
+      
+      const successMsg = data.isAdmin ? 'Login admin berhasil!' : 'Login berhasil!';
+      setSuccess(successMsg + ' Mengalihkan...');
+      
+      // Redirect based on role
+      setTimeout(() => {
+        window.location.href = data.redirectTo || '/';
+      }, 500);
+
+    } catch (error) {
+      console.error('[LOGIN] Error:', error);
+      setError('Terjadi kesalahan. Coba lagi.');
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('Password tidak cocok');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password minimal 6 karakter');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log('[REGISTER] Sending request...');
+
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        })
+      });
+
+      const data = await response.json();
+      console.log('[REGISTER] Response:', data);
+
+      if (!response.ok || !data.success) {
+        setError(data.error || 'Registrasi gagal');
+        setLoading(false);
+        return;
+      }
+
+      // Auto-login after registration
+      localStorage.setItem('userId', String(data.user.id));
+      localStorage.setItem('userToken', data.token);
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      
+      // Save credentials
+      if (rememberMe) {
+        localStorage.setItem('savedEmail', formData.email);
+        localStorage.setItem('savedPassword', formData.password);
+        localStorage.setItem('savedName', formData.name);
+      }
+      
+      setSuccess('Registrasi berhasil! Selamat datang!');
+      
+      // Redirect after short delay
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
+
+    } catch (error) {
+      console.error('[REGISTER] Error:', error);
+      setError('Terjadi kesalahan. Coba lagi.');
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-3 rounded-2xl">
+                <Trophy className="w-10 h-10 text-white" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              {isLogin ? 'Masuk' : 'Daftar Akun'}
+            </h1>
+            <p className="text-gray-500">
+              {isLogin ? 'Masuk ke akun Beli Trophy' : 'Buat akun baru di Beli Trophy'}
+            </p>
+          </div>
+
+          {/* Messages */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          
+          {success && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm">
+              {success}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={isLogin ? handleLogin : handleRegister} className="space-y-5">
+            {/* Name - Register only */}
+            {!isLogin && (
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Lengkap
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full pl-11 pr-4 py-3 rounded-lg border-2 border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition outline-none text-black font-medium"
+                    placeholder="Masukkan nama lengkap"
+                    required={!isLogin}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full pl-11 pr-4 py-3 rounded-lg border-2 border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition outline-none text-black font-medium"
+                  placeholder="anda@example.com"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full pl-11 pr-12 py-3 rounded-lg border-2 border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition outline-none text-black font-medium"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember Me - Login only */}
+            {isLogin && (
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                />
+                <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-600">
+                  Ingat saya
+                </label>
+              </div>
+            )}
+
+            {/* Confirm Password - Register only */}
+            {!isLogin && (
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                  Konfirmasi Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="w-full pl-11 pr-4 py-3 rounded-lg border-2 border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition outline-none text-black font-medium"
+                    placeholder="••••••••"
+                    required={!isLogin}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-600 to-orange-700 text-white py-3 rounded-lg font-semibold hover:from-orange-700 hover:to-orange-800 transform hover:scale-[1.02] transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Memproses...' : (isLogin ? 'Masuk' : 'Daftar')}
+            </button>
+          </form>
+
+          {/* Toggle */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              {isLogin ? "Belum punya akun?" : "Sudah punya akun?"}{' '}
+              <button
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setError('');
+                  setSuccess('');
+                }}
+                className="text-orange-600 hover:text-orange-700 font-semibold"
+              >
+                {isLogin ? 'Daftar' : 'Masuk'}
+              </button>
+            </p>
+          </div>
+
+          {/* Back */}
+          <div className="mt-4 text-center">
+            <a href="/" className="text-sm text-gray-500 hover:text-gray-700">
+              ← Kembali ke Beranda
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
