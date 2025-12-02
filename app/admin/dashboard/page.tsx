@@ -283,8 +283,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition cursor-pointer"
-               onClick={() => router.push('/admin/users')}>
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm font-medium mb-1">Total User</p>
