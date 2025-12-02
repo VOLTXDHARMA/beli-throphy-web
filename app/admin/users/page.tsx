@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Users, Calendar, Mail, Search, UserCheck, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, Mail, Search, UserCheck } from 'lucide-react';
 
 interface User {
   id: number;
@@ -18,8 +18,6 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [deleteModal, setDeleteModal] = useState(false);
-  const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
@@ -89,37 +87,6 @@ export default function AdminUsersPage() {
       setUsers([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDeleteClick = (user: User) => {
-    setDeletingUser(user);
-    setDeleteModal(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deletingUser) return;
-
-    try {
-      console.log('[ADMIN USERS] Deleting user:', deletingUser.id);
-      
-      const response = await fetch(`/api/users?id=${deletingUser.id}`, {
-        method: 'DELETE'
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        console.log('[ADMIN USERS] User deleted successfully');
-        await loadUsers(); // Reload users
-        setDeleteModal(false);
-        setDeletingUser(null);
-      } else {
-        alert('Gagal menghapus user: ' + data.error);
-      }
-    } catch (error) {
-      console.error('[ADMIN USERS] Delete error:', error);
-      alert('Terjadi kesalahan saat menghapus user');
     }
   };
 
@@ -332,7 +299,6 @@ export default function AdminUsersPage() {
                         Terdaftar
                       </div>
                     </th>
-                    <th className="px-8 py-5 text-center text-sm font-bold text-white uppercase tracking-wide">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -362,20 +328,11 @@ export default function AdminUsersPage() {
                       <td className="px-8 py-6 text-sm text-gray-600 font-medium">
                         {formatDate(user.created_at)}
                       </td>
-                      <td className="px-8 py-6 text-center">
-                        <button
-                          onClick={() => handleDeleteClick(user)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition transform hover:scale-105 shadow-md"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Hapus
-                        </button>
-                      </td>
                     </tr>
                   );
                   }) : (
                     <tr>
-                      <td colSpan={5} className="px-8 py-6 text-center text-gray-500">
+                      <td colSpan={4} className="px-8 py-6 text-center text-gray-500">
                         Debug: filteredUsers.length = {filteredUsers.length}, users.length = {users.length}
                       </td>
                     </tr>
@@ -386,45 +343,6 @@ export default function AdminUsersPage() {
           )}
         </div>
       </div>
-
-      {/* Delete Confirmation Modal */}
-      {deleteModal && deletingUser && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-slideUp">
-            <div className="flex items-center justify-center mb-6">
-              <div className="bg-red-100 p-4 rounded-full">
-                <AlertTriangle className="w-12 h-12 text-red-600" />
-              </div>
-            </div>
-            
-            <h2 className="text-2xl font-bold text-gray-800 text-center mb-2">
-              Hapus User?
-            </h2>
-            <p className="text-gray-600 text-center mb-6">
-              Apakah Anda yakin ingin menghapus user <span className="font-bold text-orange-600">{deletingUser.name}</span>? 
-              Tindakan ini tidak dapat dibatalkan.
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setDeleteModal(false);
-                  setDeletingUser(null);
-                }}
-                className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold transition"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="flex-1 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition"
-              >
-                Hapus
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
