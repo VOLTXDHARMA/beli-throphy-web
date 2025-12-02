@@ -272,31 +272,41 @@ export default function AdminUsersPage() {
 
         {/* Users Table */}
         <div ref={tableRef} className="scroll-animate bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100" style={{ transitionDelay: '0.5s' }}>
-          {filteredUsers.length === 0 ? (
+          {users.length === 0 ? (
             <div className="text-center py-20">
               <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-6 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
                 <Users className="w-12 h-12 text-orange-600" />
               </div>
               <p className="text-gray-600 text-xl font-semibold mb-2">
-                {searchQuery ? 'Tidak ada user yang cocok' : 'Belum ada user terdaftar'}
+                Belum ada user terdaftar
               </p>
               <p className="text-gray-400 mb-4">
-                {searchQuery ? 'Coba kata kunci lain' : 'User akan muncul di sini setelah registrasi'}
+                User akan muncul di sini setelah registrasi
               </p>
-              {!searchQuery && users.length === 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-2xl mx-auto mt-6">
-                  <p className="text-blue-900 font-semibold mb-3">💡 Belum ada data user?</p>
-                  <div className="text-left text-sm text-blue-800 space-y-2">
-                    <p><strong>Kemungkinan:</strong></p>
-                    <ol className="list-decimal ml-5 space-y-1">
-                      <li>Database belum disetup - Buka <code className="bg-blue-100 px-2 py-1 rounded">DATABASE-FULL.md</code> dan jalankan SQL di Supabase</li>
-                      <li>Belum ada user yang register - Coba register user baru di <code className="bg-blue-100 px-2 py-1 rounded">/login</code></li>
-                      <li>RLS policies belum dikonfigurasi - Cek di Supabase Dashboard</li>
-                    </ol>
-                    <p className="mt-3"><strong>Cek Console (F12)</strong> untuk error details.</p>
-                  </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-2xl mx-auto mt-6">
+                <p className="text-blue-900 font-semibold mb-3">💡 Belum ada data user?</p>
+                <div className="text-left text-sm text-blue-800 space-y-2">
+                  <p><strong>Kemungkinan:</strong></p>
+                  <ol className="list-decimal ml-5 space-y-1">
+                    <li>Database belum disetup - Buka <code className="bg-blue-100 px-2 py-1 rounded">DATABASE-FULL.md</code> dan jalankan SQL di Supabase</li>
+                    <li>Belum ada user yang register - Coba register user baru di <code className="bg-blue-100 px-2 py-1 rounded">/login</code></li>
+                    <li>RLS policies belum dikonfigurasi - Cek di Supabase Dashboard</li>
+                  </ol>
+                  <p className="mt-3"><strong>Cek Console (F12)</strong> untuk error details.</p>
                 </div>
-              )}
+              </div>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-6 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <Users className="w-12 h-12 text-orange-600" />
+              </div>
+              <p className="text-gray-600 text-xl font-semibold mb-2">
+                Tidak ada user yang cocok dengan pencarian
+              </p>
+              <p className="text-gray-400">
+                Coba kata kunci lain atau hapus filter pencarian
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
