@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     console.log('[USERS API] Getting all users...');
+    console.log('[USERS API] Supabase URL:', supabaseUrl);
 
     const { data: users, error } = await supabase
       .from('users')
@@ -17,11 +18,17 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[USERS API] Error:', error);
-      throw error;
+      console.error('[USERS API] Supabase Error:', error);
+      return NextResponse.json({
+        success: false,
+        error: error.message,
+        users: [],
+        total: 0
+      }, { status: 500 });
     }
 
     console.log('[USERS API] Found users:', users?.length);
+    console.log('[USERS API] Users data:', users);
 
     return NextResponse.json({
       success: true,
@@ -29,12 +36,14 @@ export async function GET(request: NextRequest) {
       total: users?.length || 0
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[USERS API] Server error:', error);
-    return NextResponse.json(
-      { error: 'Terjadi kesalahan server' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      error: error?.message || 'Terjadi kesalahan server',
+      users: [],
+      total: 0
+    }, { status: 500 });
   }
 }
 

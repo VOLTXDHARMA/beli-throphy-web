@@ -66,14 +66,19 @@ export default function AdminUsersPage() {
       const data = await response.json();
 
       console.log('[ADMIN USERS] Response:', data);
+      console.log('[ADMIN USERS] Response status:', response.status);
+      console.log('[ADMIN USERS] Users array:', data.users);
 
       if (data.success) {
         setUsers(data.users || []);
+        console.log('[ADMIN USERS] Users loaded:', data.users?.length || 0);
       } else {
         console.error('[ADMIN USERS] Failed:', data.error);
+        alert(`Gagal memuat user: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('[ADMIN USERS] Error loading users:', error);
+      alert('Terjadi kesalahan saat memuat data user. Cek console untuk detail.');
     } finally {
       setLoading(false);
     }
@@ -254,9 +259,23 @@ export default function AdminUsersPage() {
               <p className="text-gray-600 text-xl font-semibold mb-2">
                 {searchQuery ? 'Tidak ada user yang cocok' : 'Belum ada user terdaftar'}
               </p>
-              <p className="text-gray-400">
+              <p className="text-gray-400 mb-4">
                 {searchQuery ? 'Coba kata kunci lain' : 'User akan muncul di sini setelah registrasi'}
               </p>
+              {!searchQuery && users.length === 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-2xl mx-auto mt-6">
+                  <p className="text-blue-900 font-semibold mb-3">💡 Belum ada data user?</p>
+                  <div className="text-left text-sm text-blue-800 space-y-2">
+                    <p><strong>Kemungkinan:</strong></p>
+                    <ol className="list-decimal ml-5 space-y-1">
+                      <li>Database belum disetup - Buka <code className="bg-blue-100 px-2 py-1 rounded">DATABASE-FULL.md</code> dan jalankan SQL di Supabase</li>
+                      <li>Belum ada user yang register - Coba register user baru di <code className="bg-blue-100 px-2 py-1 rounded">/login</code></li>
+                      <li>RLS policies belum dikonfigurasi - Cek di Supabase Dashboard</li>
+                    </ol>
+                    <p className="mt-3"><strong>Cek Console (F12)</strong> untuk error details.</p>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
