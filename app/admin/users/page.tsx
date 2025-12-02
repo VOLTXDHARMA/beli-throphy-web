@@ -123,11 +123,21 @@ export default function AdminUsersPage() {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (user.phone && user.phone.includes(searchQuery))
-  );
+  const filteredUsers = users.filter(user => {
+    if (!user || !user.name || !user.email) {
+      console.warn('[ADMIN USERS] Invalid user data:', user);
+      return false;
+    }
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      user.name.toLowerCase().includes(searchLower) ||
+      user.email.toLowerCase().includes(searchLower) ||
+      (user.phone && user.phone.includes(searchQuery))
+    );
+  });
+
+  console.log('[ADMIN USERS] Filtered users count:', filteredUsers.length);
+  console.log('[ADMIN USERS] Total users:', users.length);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
@@ -151,6 +161,9 @@ export default function AdminUsersPage() {
       </div>
     );
   }
+
+  console.log('[ADMIN USERS] Rendering with users:', users.length);
+  console.log('[ADMIN USERS] Filtered users for display:', filteredUsers.length);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50/30 to-gray-50">
@@ -313,7 +326,9 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredUsers.map((user, index) => (
+                  {filteredUsers.length > 0 ? filteredUsers.map((user, index) => {
+                    console.log('[ADMIN USERS] Rendering user:', index, user);
+                    return (
                     <tr key={user.id} className={`hover:bg-orange-50/50 transition ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
                       <td className="px-8 py-6 text-sm font-bold text-gray-600">
                         {index + 1}
@@ -321,10 +336,10 @@ export default function AdminUsersPage() {
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg ring-2 ring-orange-200">
-                            {user.name.charAt(0).toUpperCase()}
+                            {user.name?.charAt(0)?.toUpperCase() || 'U'}
                           </div>
                           <div>
-                            <p className="font-bold text-gray-900 text-base">{user.name}</p>
+                            <p className="font-bold text-gray-900 text-base">{user.name || 'Unknown'}</p>
                             <p className="text-xs text-orange-600 capitalize font-medium bg-orange-100 px-3 py-1 rounded-full inline-block mt-1">
                               User
                             </p>
@@ -332,7 +347,7 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
                       <td className="px-8 py-6 text-sm text-gray-700 font-medium">
-                        {user.email}
+                        {user.email || 'No email'}
                       </td>
                       <td className="px-8 py-6 text-sm text-gray-600 font-medium">
                         {formatDate(user.created_at)}
@@ -347,7 +362,14 @@ export default function AdminUsersPage() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  );
+                  }) : (
+                    <tr>
+                      <td colSpan={5} className="px-8 py-6 text-center text-gray-500">
+                        Debug: filteredUsers.length = {filteredUsers.length}, users.length = {users.length}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
