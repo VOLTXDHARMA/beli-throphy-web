@@ -30,10 +30,16 @@ export async function GET(request: NextRequest) {
     console.log('[USERS API] Found users:', users?.length);
     console.log('[USERS API] Users data:', users);
 
+    // Convert BigInt to Number for React compatibility
+    const usersWithNumberId = users?.map(user => ({
+      ...user,
+      id: Number(user.id)
+    })) || [];
+
     return NextResponse.json({
       success: true,
-      users: users || [],
-      total: users?.length || 0
+      users: usersWithNumberId,
+      total: usersWithNumberId.length
     });
 
   } catch (error: any) {

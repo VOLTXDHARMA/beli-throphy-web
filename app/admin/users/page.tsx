@@ -63,22 +63,30 @@ export default function AdminUsersPage() {
     try {
       console.log('[ADMIN USERS] Loading users...');
       const response = await fetch('/api/users');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
 
       console.log('[ADMIN USERS] Response:', data);
       console.log('[ADMIN USERS] Response status:', response.status);
       console.log('[ADMIN USERS] Users array:', data.users);
 
-      if (data.success) {
-        setUsers(data.users || []);
-        console.log('[ADMIN USERS] Users loaded:', data.users?.length || 0);
+      if (data.success && Array.isArray(data.users)) {
+        setUsers(data.users);
+        console.log('[ADMIN USERS] Users loaded:', data.users.length);
+        console.log('[ADMIN USERS] First user sample:', data.users[0]);
       } else {
         console.error('[ADMIN USERS] Failed:', data.error);
         alert(`Gagal memuat user: ${data.error || 'Unknown error'}`);
+        setUsers([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ADMIN USERS] Error loading users:', error);
-      alert('Terjadi kesalahan saat memuat data user. Cek console untuk detail.');
+      alert(`Terjadi kesalahan saat memuat data user: ${error.message}`);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
